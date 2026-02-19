@@ -1,0 +1,395 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>Simulador de Quadrículas</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text x=%2250%25%22 text-anchor=%22middle%22 y=%22.9em%22 font-size=%2290%22>🌐</text></svg>">
+    <style>
+      html,
+      body,
+      #viewDiv {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+      }
+      #controls {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        background: rgba(255, 255, 255, 0.8);
+        padding: 10px;
+        border-radius: 5px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        font-size: 12px;
+      }
+      button {
+        display: block;
+        margin: 5px 0;
+        padding: 8px 12px;
+        cursor: pointer;
+      }
+      label {
+        display: block;
+        margin: 5px 0;
+        cursor: pointer;
+      }
+      p {
+        margin-top: 2px;
+        margin-bottom: 2px;
+      }
+      h4 {
+        background-color: #004c78;
+        padding: 4px 6px;
+        color: white;
+        margin-bottom: 4px;
+        margin-top: 2px;
+      }
+      .esri-legend, .esri-layer-list{
+        opacity: 0.8;
+      }
+    </style>
+    <link rel="stylesheet" href="https://js.arcgis.com/4.34/esri/themes/light/main.css" />
+    <script src="https://js.arcgis.com/4.34/"></script>
+    <script>
+      require([
+        "esri/Map",
+        "esri/views/MapView",
+        "esri/widgets/Sketch",
+        "esri/layers/GraphicsLayer",
+        "esri/layers/FeatureLayer",
+        "esri/layers/GeoJSONLayer",
+        "esri/Graphic",
+        "esri/geometry/Polygon",
+        "esri/geometry/geometryEngine",
+        "esri/geometry/projection",
+        "esri/geometry/SpatialReference",
+        "esri/widgets/Legend",
+        "esri/widgets/LayerList",
+      ], (
+        Map,
+        MapView,
+        Sketch,
+        GraphicsLayer,
+        FeatureLayer,
+        GeoJSONLayer,
+        Graphic,
+        Polygon,
+        geometryEngine,
+        projection,
+        SpatialReference,
+        Legend,
+        LayerList,
+      ) => {
+        const unionLayer = new FeatureLayer({
+          title: "Polígono sugerido",
+          source: [],
+          objectIdField: "ObjectID",
+          geometryType: "polygon",
+          fields: [
+            { name: "ObjectID", type: "oid" },
+            { name: "cellCount", type: "integer" },
+          ],
+          renderer: {
+            type: "simple",
+            symbol: { type: "simple-fill", color: [0, 255, 255, 0], outline: { color: [0, 255, 255], width: 2 } },
+          },
+        });
+
+        const geojsonLayer = new GeoJSONLayer({
+          url: "data/dados.geojson",
+          title: "Áreas exemplo",
+          renderer: {
+            type: "unique-value",
+            field: "tipo",
+            uniqueValueInfos: [
+              {
+                value: "UC Integral",
+                symbol: { type: "simple-fill", color: [0, 100, 13, 0.5], outline: { color: [0, 100, 13], width: 2 } },
+              },
+              {
+                value: "UC Sustentável",
+                symbol: { type: "simple-fill", color: [0, 216, 29, 0.5], outline: { color: [0, 216, 29], width: 2 } },
+              },
+              {
+                value: "Concessão de Lavra",
+                symbol: { type: "simple-fill", color: [255, 0, 0, 0.5], outline: { color: [255, 0, 0], width: 2 } },
+              },
+              {
+                value: "Área de Bloqueio",
+                symbol: { type: "simple-fill", color: [255, 0, 255, 0.5], outline: { color: [255, 0, 255], width: 2 } },
+              },
+            ],
+          },
+        });
+
+        const sketchLayer = new GraphicsLayer({ title: "Polígono desenhado" });
+
+        const gridCellsLayer = new FeatureLayer({
+          title: "Restrições",
+          source: [],
+          objectIdField: "ObjectID",
+          geometryType: "polygon",
+          fields: [
+            { name: "ObjectID", type: "oid" },
+            { name: "cellId", type: "string" },
+            { name: "restricao", type: "string" },
+          ],
+          renderer: {
+            type: "unique-value",
+            field: "restricao",
+            defaultLabel: "Sem restrição",
+            uniqueValueInfos: [
+              {
+                value: "total",
+                label: "Total",
+                symbol: { type: "simple-fill", color: [0, 0, 0, 0.4], outline: { color: [0, 0, 0], width: 1 } },
+              },
+              {
+                value: "parcial",
+                label: "Parcial",
+                symbol: { type: "simple-fill", color: [255, 165, 0, 0.4], outline: { color: [255, 165, 0], width: 1 } },
+              },
+            ],
+            defaultSymbol: {
+              type: "simple-fill",
+              color: [0, 255, 255, 0.2],
+              outline: { color: [0, 255, 255, 0.2], width: 1 },
+            },
+          },
+        });
+
+        geojsonLayer.when(
+          () => {
+            console.log("GeoJSON loaded successfully");
+            console.log("Feature count:", geojsonLayer.source.length);
+          },
+          (error) => {
+            console.error("GeoJSON load error:", error);
+          },
+        );
+
+        const map = new Map({ basemap: "hybrid", layers: [geojsonLayer, gridCellsLayer, unionLayer, sketchLayer] });
+
+        const view = new MapView({ container: "viewDiv", map: map, center: [-47.9151, -15.6094], zoom: 14 });
+
+        const legend = new Legend({ view: view });
+
+        const layerList = new LayerList({ view: view, visibilityAppearance: "checkbox" });
+
+        const sketch = new Sketch({
+          layer: sketchLayer,
+          view: view,
+          creationMode: "single",
+          availableCreateTools: ["polygon", "rectangle", "circle"],
+          tooltipOptions: {
+            enabled: true
+          },
+          visibleElements: { selectionTools: { "rectangle-selection": false, "lasso-selection": false } },
+        });
+
+        view.ui.add(sketch, "bottom-left");
+        view.ui.add(legend, "bottom-right");
+        view.ui.add(layerList, "top-right");
+        view.ui.remove("zoom");
+
+        // Clear button
+        document.getElementById("clearBtn").onclick = () => {
+          sketchLayer.removeAll();
+          gridCellsLayer.queryFeatures().then((result) => {
+            gridCellsLayer.applyEdits({ deleteFeatures: result.features });
+          });
+          unionLayer.queryFeatures().then((result) => {
+            unionLayer.applyEdits({ deleteFeatures: result.features });
+          });
+
+          // Reset stats
+          document.getElementById("drawnVertices").textContent = 0;
+          document.getElementById("totalCells").textContent = 0;
+          document.getElementById("allowedCells").textContent = 0;
+          document.getElementById("unionVertices").textContent = 0;
+          document.getElementById("drawnArea").textContent = 0;
+          document.getElementById("unionArea").textContent = 0;
+        };
+
+        projection.load().then(() => {
+          sketch.on("create", (event) => {
+            if (event.state === "complete") {
+              const drawnPolygon = event.graphic.geometry;
+              setTimeout(() => processPolygon(drawnPolygon), 100);
+            }
+          });
+        });
+
+        let objectIdCounter = 1;
+
+        function processPolygon(polygon) {
+          let wgs84Polygon = polygon;
+          if (polygon.spatialReference.wkid !== 4326) {
+            wgs84Polygon = projection.project(polygon, new SpatialReference({ wkid: 4326 }));
+          }
+
+          // Count vertices in drawn polygon
+          const drawnVertexCount = polygon.rings.reduce((sum, ring) => sum + ring.length - 1, 0);
+          document.getElementById("drawnVertices").textContent = drawnVertexCount;
+
+          const drawnArea = geometryEngine.geodesicArea(polygon, "hectares").toFixed(2);
+          document.getElementById("drawnArea").textContent = `${drawnArea} ha`;
+
+          const extent = wgs84Polygon.extent;
+          const gridSize = 1 / 3600;
+
+          const minX = Math.floor(extent.xmin / gridSize) * gridSize;
+          const maxX = Math.ceil(extent.xmax / gridSize) * gridSize;
+          const minY = Math.floor(extent.ymin / gridSize) * gridSize;
+          const maxY = Math.ceil(extent.ymax / gridSize) * gridSize;
+
+          const numCellsX = Math.round((maxX - minX) / gridSize);
+          const numCellsY = Math.round((maxY - minY) / gridSize);
+          const totalCells = numCellsX * numCellsY;
+
+          console.log(`Grid: ${numCellsX} x ${numCellsY} = ${totalCells} cells`);
+
+          if (totalCells > 10000) {
+            alert(`Número de quadrículas muito grande (${totalCells}), desenhe um polígono menor.`);
+            return;
+          }
+
+          // Query geojson features first
+          geojsonLayer.queryFeatures().then((geojsonResult) => {
+            const restrictionFeatures = geojsonResult.features;
+
+            const cells = [];
+            const cellFeatures = [];
+
+            for (let i = 0; i < numCellsX; i++) {
+              for (let j = 0; j < numCellsY; j++) {
+                const x = minX + i * gridSize;
+                const y = minY + j * gridSize;
+
+                const cell = new Polygon({
+                  rings: [
+                    [
+                      [x, y],
+                      [x + gridSize, y],
+                      [x + gridSize, y + gridSize],
+                      [x, y + gridSize],
+                      [x, y],
+                    ],
+                  ],
+                  spatialReference: { wkid: 4326 },
+                });
+
+                if (geometryEngine.intersects(cell, wgs84Polygon)) {
+                  cells.push(cell);
+
+                  let displayCell = cell;
+                  if (view.spatialReference.wkid !== 4326) {
+                    displayCell = projection.project(cell, view.spatialReference);
+                  }
+
+                  // Check intersection with restriction areas
+                  let restricao = null;
+                  for (const feature of restrictionFeatures) {
+                    let featureGeom = feature.geometry;
+                    if (featureGeom.spatialReference.wkid !== 4326) {
+                      featureGeom = projection.project(featureGeom, new SpatialReference({ wkid: 4326 }));
+                    }
+
+                    if (geometryEngine.intersects(cell, featureGeom)) {
+                      const featureRestricao = feature.attributes.restricao;
+
+                      // "total" takes precedence over "parcial"
+                      if (featureRestricao === "total") {
+                        restricao = "total";
+                        break; // No need to check further
+                      } else if (featureRestricao === "parcial" && restricao !== "total") {
+                        restricao = "parcial";
+                      }
+                    }
+                  }
+
+                  cellFeatures.push({
+                    geometry: displayCell,
+                    attributes: { ObjectID: objectIdCounter++, cellId: `cell_${i}_${j}`, restricao: restricao },
+                  });
+                }
+              }
+            }
+
+            console.log(`Intersecting cells: ${cells.length}`);
+            document.getElementById("totalCells").textContent = cells.length;
+
+            if (cells.length > 0) {
+              // Add cells to feature layer
+              gridCellsLayer.applyEdits({ addFeatures: cellFeatures });
+
+              // Filter cells - only union cells that don't have "total" restriction
+              const allowedCells = [];
+              for (let i = 0; i < cells.length; i++) {
+                if (cellFeatures[i].attributes.restricao !== "total") {
+                  allowedCells.push(cells[i]);
+                }
+              }
+
+              console.log(`Allowed cells (non-total): ${allowedCells.length}`);
+              document.getElementById("allowedCells").textContent = allowedCells.length;
+
+              // Add union only if there are allowed cells
+              if (allowedCells.length > 0) {
+                let unionedGrid = geometryEngine.union(allowedCells);
+                if (view.spatialReference.wkid !== 4326) {
+                  unionedGrid = projection.project(unionedGrid, view.spatialReference);
+                }
+
+                // Count vertices in union polygon
+                const dissolvedGrid = geometryEngine.generalize(unionedGrid, 0.00001, true);
+                const unionVertexCount = dissolvedGrid.rings.reduce((sum, ring) => sum + ring.length - 1, 0);
+
+                const unionArea = geometryEngine.geodesicArea(unionedGrid, "hectares").toFixed(2);
+
+                document.getElementById("unionVertices").textContent = unionVertexCount;
+                document.getElementById("unionArea").textContent = `${unionArea} ha`;
+
+                unionLayer.applyEdits({
+                  addFeatures: [
+                    {
+                      geometry: unionedGrid,
+                      attributes: { ObjectID: objectIdCounter++, cellCount: allowedCells.length },
+                    },
+                  ],
+                });
+              } else {
+                document.getElementById("unionVertices").textContent = 0;
+                document.getElementById("unionArea").textContent = 0;
+              }
+            } else {
+              document.getElementById("allowedCells").textContent = 0;
+              document.getElementById("unionVertices").textContent = 0;
+              document.getElementById("unionArea").textContent = 0;
+            }
+          });
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <div id="viewDiv"></div>
+    <div id="controls">
+      <div id="stats">
+        <h4>Estatísticas:</h4>
+        <p>Vértices do polígono desenhado: <span id="drawnVertices">0</span></p>
+        <p>Vértices do polígono de quadrículas: <span id="unionVertices">0</span></p>
+        <p>Quadrículas intersectadas: <span id="totalCells">0</span></p>
+        <p>Quadrículas sem restrição total: <span id="allowedCells">0</span></p>
+        <p>Area do polígono desenhado: <span id="drawnArea">0</span></p>
+        <p>Area do polígono de quadrículas: <span id="unionArea">0</span></p>
+        <br />
+        <p>Obs: as áreas exemplo nesse mapa não necessariamente condizem com a realidade</p>
+      </div>
+      <hr />
+      <button id="clearBtn">Limpar tudo</button>
+    </div>
+  </body>
+</html>
