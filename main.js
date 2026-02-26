@@ -1,32 +1,38 @@
-require([
-  "esri/Map",
-  "esri/views/MapView",
-  "esri/widgets/Sketch",
-  "esri/layers/GraphicsLayer",
-  "esri/layers/FeatureLayer",
-  "esri/layers/GeoJSONLayer",
-  "esri/Graphic",
-  "esri/geometry/Polygon",
-  "esri/geometry/geometryEngine",
-  "esri/geometry/projection",
-  "esri/geometry/SpatialReference",
-  "esri/widgets/Legend",
-  "esri/widgets/LayerList",
-], (
-  Map,
-  MapView,
-  Sketch,
+const [
   GraphicsLayer,
   FeatureLayer,
   GeoJSONLayer,
   Graphic,
   Polygon,
-  geometryEngine,
-  projection,
+  intersectsOperator,
+  unionOperator,
+  geodeticAreaOperator,
+  generalizeOperator,
+  projectOperator,
   SpatialReference,
-  Legend,
-  LayerList,
-) => {
+] = await $arcgis.import([
+  "@arcgis/core/layers/GraphicsLayer.js",
+  "@arcgis/core/layers/FeatureLayer.js",
+  "@arcgis/core/layers/GeoJSONLayer.js",
+  "@arcgis/core/Graphic.js",
+  "@arcgis/core/geometry/Polygon.js",
+  "@arcgis/core/geometry/operators/intersectsOperator.js",
+  "@arcgis/core/geometry/operators/unionOperator.js",
+  "@arcgis/core/geometry/operators/geodeticAreaOperator.js",
+  "@arcgis/core/geometry/operators/generalizeOperator.js",
+  "@arcgis/core/geometry/operators/projectOperator.js",
+  "@arcgis/core/geometry/SpatialReference.js",
+]);
+
+await projectOperator.load();
+await geodeticAreaOperator.load();
+
+const viewElement = document.querySelector("arcgis-map");
+const arcgisSketch = document.querySelector("arcgis-sketch");
+
+await viewElement.viewOnReady();
+
+{
   const unionLayer = new FeatureLayer({
     title: "Polígono sugerido",
     source: [],
@@ -115,27 +121,8 @@ require([
     },
   );
 
-  const map = new Map({ basemap: "hybrid", layers: [geojsonLayer, gridCellsLayer, unionLayer, sketchLayer] });
-
-  const view = new MapView({ container: "viewDiv", map: map, center: [-47.9151, -15.6094], zoom: 14 });
-
-  const legend = new Legend({ view: view });
-
-  const layerList = new LayerList({ view: view, visibilityAppearance: "checkbox" });
-
-  const sketch = new Sketch({
-    layer: sketchLayer,
-    view: view,
-    creationMode: "single",
-    availableCreateTools: ["polygon", "rectangle", "circle"],
-    tooltipOptions: { enabled: true },
-    visibleElements: { selectionTools: { "rectangle-selection": false, "lasso-selection": false } },
-  });
-
-  view.ui.add(sketch, "bottom-left");
-  view.ui.add(legend, "bottom-right");
-  view.ui.add(layerList, "top-right");
-  view.ui.remove("zoom");
+  viewElement.map.addMany([geojsonLayer, gridCellsLayer, unionLayer, sketchLayer]);
+  arcgisSketch.layer = sketchLayer;
 
   document.getElementById("clearBtn").onclick = () => {
     sketchLayer.removeAll();
@@ -158,13 +145,13 @@ require([
   function processPolygon(polygon) {
     let wgs84Polygon = polygon;
     if (polygon.spatialReference.wkid !== 4326) {
-      wgs84Polygon = projection.project(polygon, new SpatialReference({ wkid: 4326 }));
+      wgs84Polygon = projectOperator.execute(polygon, new SpatialReference({ wkid: 4326 }));
     }
 
     const drawnVertexCount = polygon.rings.reduce((sum, ring) => sum + ring.length - 1, 0);
     document.getElementById("drawnVertices").textContent = drawnVertexCount;
 
-    const drawnArea = geometryEngine.geodesicArea(polygon, "hectares").toFixed(2);
+    const drawnArea = geodeticAreaOperator.execute(polygon, { unit: "hectares" }).toFixed(2);
     document.getElementById("drawnArea").textContent = `${drawnArea} ha`;
 
     const extent = wgs84Polygon.extent;
@@ -201,22 +188,22 @@ require([
             spatialReference: { wkid: 4326 },
           });
 
-          if (geometryEngine.intersects(cell, wgs84Polygon)) {
+          if (intersectsOperator.execute(cell, wgs84Polygon)) {
             cells.push(cell);
 
             let displayCell = cell;
-            if (view.spatialReference.wkid !== 4326) {
-              displayCell = projection.project(cell, view.spatialReference);
+            if (viewElement.view.spatialReference.wkid !== 4326) {
+              displayCell = projectOperator.execute(cell, viewElement.view.spatialReference);
             }
 
             let restricao = null;
             for (const feature of restrictionFeatures) {
               let featureGeom = feature.geometry;
               if (featureGeom.spatialReference.wkid !== 4326) {
-                featureGeom = projection.project(featureGeom, new SpatialReference({ wkid: 4326 }));
+                featureGeom = projectOperator.execute(featureGeom, new SpatialReference({ wkid: 4326 }));
               }
 
-              if (geometryEngine.intersects(cell, featureGeom)) {
+              if (intersectsOperator.execute(cell, featureGeom)) {
                 const featureRestricao = feature.attributes.restricao;
                 if (featureRestricao === "total") {
                   restricao = "total";
@@ -247,14 +234,14 @@ require([
         document.getElementById("allowedCells").textContent = allowedCells.length;
 
         if (allowedCells.length > 0) {
-          let unionedGrid = geometryEngine.union(allowedCells);
-          if (view.spatialReference.wkid !== 4326) {
-            unionedGrid = projection.project(unionedGrid, view.spatialReference);
+          let unionedGrid = unionOperator.executeMany(allowedCells);
+          if (viewElement.view.spatialReference.wkid !== 4326) {
+            unionedGrid = projectOperator.execute(unionedGrid, viewElement.view.spatialReference);
           }
 
-          const dissolvedGrid = geometryEngine.generalize(unionedGrid, 0.00001, true);
+          const dissolvedGrid = generalizeOperator.execute(unionedGrid, 0.00001, true);
           const unionVertexCount = dissolvedGrid.rings.reduce((sum, ring) => sum + ring.length - 1, 0);
-          const unionArea = geometryEngine.geodesicArea(unionedGrid, "hectares").toFixed(2);
+          const unionArea = geodeticAreaOperator.execute(unionedGrid, { unit: "hectares" }).toFixed(2);
 
           document.getElementById("unionVertices").textContent = unionVertexCount;
           document.getElementById("unionArea").textContent = `${unionArea} ha`;
@@ -277,12 +264,10 @@ require([
     });
   }
 
-  projection.load().then(() => {
-    sketch.on("create", (event) => {
-      if (event.state === "complete") {
-        const drawnPolygon = event.graphic.geometry;
-        setTimeout(() => processPolygon(drawnPolygon), 100);
-      }
-    });
+  arcgisSketch.addEventListener("arcgisCreate", (event) => {
+    if (event.detail.state === "complete") {
+      const drawnPolygon = event.detail.graphic.geometry;
+      setTimeout(() => processPolygon(drawnPolygon), 100);
+    }
   });
-});
+}

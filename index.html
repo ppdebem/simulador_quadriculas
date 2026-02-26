@@ -2,16 +2,29 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <title>Simulador de Quadrículas</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text x=%2250%25%22 text-anchor=%22middle%22 y=%22.9em%22 font-size=%2290%22>🌐</text></svg>">
     <link rel="stylesheet" href="styles.css" />
-    <link rel="stylesheet" href="https://js.arcgis.com/4.34/esri/themes/light/main.css" />
-    <script src="https://js.arcgis.com/4.34/"></script>
-    <script src="main.js"></script>
+    <script type="module" src="https://js.arcgis.com/5.0/"></script>
+    <script type="module" src="main.js"></script>
   </head>
   <body>
-    <div id="viewDiv"></div>
+    <arcgis-map basemap="hybrid" center="-47.9151, -15.6094" zoom="14">
+      <arcgis-sketch
+        slot="bottom-left"
+        creation-mode="single"
+        hide-create-tools-point
+        hide-create-tools-polyline
+        hide-duplicate-button
+        hide-selection-tools-lasso-selection
+        hide-selection-tools-rectangle-selection
+        default-graphics-layer-disabled
+      ></arcgis-sketch>
+      <arcgis-legend slot="bottom-right"></arcgis-legend>
+      <arcgis-layer-list slot="top-right" visibility-appearance="checkbox"></arcgis-layer-list>
+    </arcgis-map>
+
     <div id="controls">
       <div id="stats">
         <h4>Estatísticas:</h4>
