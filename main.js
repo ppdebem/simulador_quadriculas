@@ -33,6 +33,7 @@ await geodeticAreaOperator.load();
 
 const viewElement = document.querySelector("arcgis-map");
 const arcgisSketch = document.querySelector("arcgis-sketch");
+arcgisSketch.tooltipOptions.enabled = true;
 
 await viewElement.viewOnReady();
 const view = viewElement.view;
