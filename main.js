@@ -4,24 +4,28 @@ const [
   GeoJSONLayer,
   Graphic,
   Polygon,
+  Polyline,
   intersectsOperator,
   unionOperator,
   geodeticAreaOperator,
   generalizeOperator,
   projectOperator,
   SpatialReference,
+  reactiveUtils,
 ] = await $arcgis.import([
   "@arcgis/core/layers/GraphicsLayer.js",
   "@arcgis/core/layers/FeatureLayer.js",
   "@arcgis/core/layers/GeoJSONLayer.js",
   "@arcgis/core/Graphic.js",
   "@arcgis/core/geometry/Polygon.js",
+  "@arcgis/core/geometry/Polyline.js",
   "@arcgis/core/geometry/operators/intersectsOperator.js",
   "@arcgis/core/geometry/operators/unionOperator.js",
   "@arcgis/core/geometry/operators/geodeticAreaOperator.js",
   "@arcgis/core/geometry/operators/generalizeOperator.js",
   "@arcgis/core/geometry/operators/projectOperator.js",
   "@arcgis/core/geometry/SpatialReference.js",
+  "@arcgis/core/core/reactiveUtils.js",
 ]);
 
 await projectOperator.load();
@@ -29,9 +33,50 @@ await geodeticAreaOperator.load();
 
 const viewElement = document.querySelector("arcgis-map");
 const arcgisSketch = document.querySelector("arcgis-sketch");
-arcgisSketch.tooltipOptions.enabled = true;
 
 await viewElement.viewOnReady();
+const view = viewElement.view;
+
+// --- Graticule WGS84 ---
+const graticuleLayer = new GraphicsLayer({ title: "Grid de Quadrículas", listMode: "show" });
+
+const lineSymbol = { type: "simple-line", color: [50, 50, 50, 0.8], width: 0.5 };
+
+function updateGraticule() {
+  if (!view.stationary) return;
+  graticuleLayer.removeAll();
+
+  if (view.zoom < 15) return; // só mostra em zoom alto
+
+  const ext = view.extent;
+  const wgs84 = SpatialReference.WGS84;
+  const extWgs = projectOperator.execute(ext, wgs84);
+  if (!extWgs) return;
+
+  const interval = 1 / 3600; // 1 arcsec
+  const graphics = [];
+
+  const minLon = Math.ceil(extWgs.xmin / interval) * interval;
+  const maxLon = Math.floor(extWgs.xmax / interval) * interval;
+  const minLat = Math.ceil(extWgs.ymin / interval) * interval;
+  const maxLat = Math.floor(extWgs.ymax / interval) * interval;
+
+  for (let lon = minLon; lon <= maxLon + 1e-9; lon += interval) {
+    const line = new Polyline({ paths: [[[lon, extWgs.ymin], [lon, extWgs.ymax]]], spatialReference: wgs84 });
+    graphics.push(new Graphic({ geometry: line, symbol: lineSymbol}));
+  }
+
+  for (let lat = minLat; lat <= maxLat + 1e-9; lat += interval) {
+    const line = new Polyline({ paths: [[[extWgs.xmin, lat], [extWgs.xmax, lat]]], spatialReference: wgs84 });
+    graphics.push(new Graphic({ geometry: line, symbol: lineSymbol}));
+  }
+
+  graticuleLayer.addMany(graphics);
+}
+
+reactiveUtils.watch(() => view.stationary, (isStationary) => { if (isStationary) updateGraticule(); });
+updateGraticule();
+// --- fim Graticule ---
 
 {
   const unionLayer = new FeatureLayer({
@@ -122,8 +167,10 @@ await viewElement.viewOnReady();
     },
   );
 
-  viewElement.map.addMany([geojsonLayer, gridCellsLayer, unionLayer, sketchLayer]);
+  viewElement.map.addMany([geojsonLayer, graticuleLayer, gridCellsLayer, unionLayer, sketchLayer]);
   arcgisSketch.layer = sketchLayer;
+
+
 
   document.getElementById("clearBtn").onclick = () => {
     sketchLayer.removeAll();
