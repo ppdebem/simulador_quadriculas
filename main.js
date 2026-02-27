@@ -46,7 +46,7 @@ function updateGraticule() {
   if (!view.stationary) return;
   graticuleLayer.removeAll();
 
-  if (view.zoom < 15) return; // só mostra em zoom alto
+  if (view.zoom < 16) return; // só mostra em zoom alto
 
   const ext = view.extent;
   const wgs84 = SpatialReference.WGS84;
@@ -169,8 +169,6 @@ updateGraticule();
 
   viewElement.map.addMany([geojsonLayer, graticuleLayer, gridCellsLayer, unionLayer, sketchLayer]);
   arcgisSketch.layer = sketchLayer;
-
-
 
   document.getElementById("clearBtn").onclick = () => {
     sketchLayer.removeAll();
