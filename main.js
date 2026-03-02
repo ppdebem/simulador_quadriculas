@@ -194,7 +194,7 @@ updateGraticule();
         {
           value: "parcial",
           label: "Parcial",
-          symbol: { type: "simple-fill", color: [255, 165, 0, 0.4], outline: { color: [255, 165, 0], width: 1 } },
+          symbol: { type: "simple-fill", color: [255, 100, 0, 0.4], outline: { color: [255, 165, 0], width: 1 } },
         },
       ],
     },
