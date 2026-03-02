@@ -33,6 +33,8 @@ await geodeticAreaOperator.load();
 
 const viewElement = document.querySelector("arcgis-map");
 const arcgisSketch = document.querySelector("arcgis-sketch");
+const arcgisEditor = document.querySelector("arcgis-editor");
+
 arcgisSketch.tooltipOptions.enabled = true;
 
 await viewElement.viewOnReady();
@@ -62,12 +64,12 @@ function updateGraticule() {
   const minLat = Math.ceil(extWgs.ymin / interval) * interval;
   const maxLat = Math.floor(extWgs.ymax / interval) * interval;
 
-  for (let lon = minLon; lon <= maxLon + 1e-9; lon += interval) {
+  for (let lon = minLon; lon <= maxLon; lon += interval) {
     const line = new Polyline({ paths: [[[lon, extWgs.ymin], [lon, extWgs.ymax]]], spatialReference: wgs84 });
     graphics.push(new Graphic({ geometry: line, symbol: lineSymbol}));
   }
 
-  for (let lat = minLat; lat <= maxLat + 1e-9; lat += interval) {
+  for (let lat = minLat; lat <= maxLat; lat += interval) {
     const line = new Polyline({ paths: [[[extWgs.xmin, lat], [extWgs.xmax, lat]]], spatialReference: wgs84 });
     graphics.push(new Graphic({ geometry: line, symbol: lineSymbol}));
   }
@@ -98,6 +100,42 @@ updateGraticule();
   const geojsonLayer = new GeoJSONLayer({
     url: "data/dados.geojson",
     title: "Áreas exemplo",
+    editingEnabled: true,
+    fields: [
+      { name: "ObjectID", type: "oid" },
+      { name: "nome", type: "string", alias: "Nome" },
+      {
+        name: "Tipo", type: "string", alias: "Tipo",
+        domain: {
+          type: "coded-value",
+          codedValues: [
+            { code: "UC Integral",        name: "UC Integral" },
+            { code: "UC Sustentável",     name: "UC Sustentável" },
+            { code: "Concessão de Lavra", name: "Concessão de Lavra" },
+            { code: "Área de Bloqueio",   name: "Área de Bloqueio" },
+            { code: "Terra Indígena",   name: "Terra Indígena" },
+          ],
+        },
+      },
+      {
+        name: "restricao", type: "string", alias: "Restrição",
+        domain: {
+          type: "coded-value",
+          codedValues: [
+            { code: "total",   name: "Total" },
+            { code: "parcial", name: "Parcial" },
+            { code: "",        name: "Nenhuma" },
+          ],
+        },
+      },
+    ],
+    formTemplate: {
+      elements: [
+        { type: "field", fieldName: "nome",     label: "Nome" },
+        { type: "field", fieldName: "Tipo",     label: "Tipo" },
+        { type: "field", fieldName: "restricao", label: "Restrição" },
+      ],
+    },
     renderer: {
       type: "unique-value",
       field: "tipo",
@@ -117,6 +155,10 @@ updateGraticule();
         {
           value: "Área de Bloqueio",
           symbol: { type: "simple-fill", color: [255, 0, 255, 0.5], outline: { color: [255, 0, 255], width: 2 } },
+        },
+        {
+          value: "Terra Indígena",
+          symbol: { type: "simple-fill", color: [255, 255, 0, 0.5], outline: { color: [255, 255, 0], width: 2 } },
         },
       ],
     },
@@ -168,7 +210,16 @@ updateGraticule();
     },
   );
 
+  arcgisEditor.layerInfos = [
+   { layer:geojsonLayer, enabled: true },
+   { layer:graticuleLayer, enabled: false },
+   { layer:gridCellsLayer, enabled: false },
+   { layer:unionLayer, enabled: false },
+   { layer:sketchLayer, enabled: false },
+  ];
+
   viewElement.map.addMany([geojsonLayer, graticuleLayer, gridCellsLayer, unionLayer, sketchLayer]);
+
   arcgisSketch.layer = sketchLayer;
 
   document.getElementById("clearBtn").onclick = () => {
