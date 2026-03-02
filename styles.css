@@ -46,6 +46,18 @@ h4 {
 
 arcgis-sketch,
 arcgis-legend,
+arcgis-editor,
 arcgis-layer-list {
   opacity: 0.8;
+}
+
+arcgis-legend {
+  max-width: 200px;
+}
+
+#sketch {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
 }

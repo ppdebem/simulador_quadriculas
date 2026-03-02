@@ -11,8 +11,9 @@
   </head>
   <body>
     <arcgis-map basemap="hybrid" center="-47.9151, -15.6094" zoom="14">
+      <arcgis-legend slot="bottom-left"></arcgis-legend>
       <arcgis-sketch
-        slot="bottom-left"
+        id="sketch"
         creation-mode="single"
         hide-create-tools-point
         hide-create-tools-polyline
@@ -23,7 +24,6 @@
         use-legacy-create-tools
       ></arcgis-sketch>
       <arcgis-editor slot="bottom-right"></arcgis-editor>
-      <arcgis-legend slot="bottom-right"></arcgis-legend>
       <arcgis-layer-list slot="top-right" visibility-appearance="checkbox"></arcgis-layer-list>
     </arcgis-map>
 
