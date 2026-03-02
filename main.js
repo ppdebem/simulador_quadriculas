@@ -227,11 +227,11 @@ updateGraticule();
     type: "simple-fill",
     color: [255, 255, 255, 0.2],
     outline: {
-      color: [0, 0, 0, 1],
+      color: [255, 255, 255, 1],
       width: 2,
       style: "dash"
     }
-  }
+  };
 
   document.getElementById("clearBtn").onclick = () => {
     sketchLayer.removeAll();
