@@ -16,6 +16,7 @@ arcgis-map {
   border-radius: 5px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   font-size: 12px;
+  max-width: 300px;
 }
 
 button {
@@ -31,17 +32,18 @@ label {
   cursor: pointer;
 }
 
-p {
-  margin-top: 2px;
-  margin-bottom: 2px;
+#stats p {
+  margin-top: 1px;
+  margin-bottom: 1px;
 }
 
-h4 {
+#controls h4 {
   background-color: #004c78;
   padding: 4px 6px;
   color: white;
   margin-bottom: 4px;
   margin-top: 2px;
+  border-radius: 4px;
 }
 
 arcgis-sketch,
@@ -49,6 +51,7 @@ arcgis-legend,
 arcgis-editor,
 arcgis-layer-list {
   opacity: 0.8;
+  border-radius: 4px;
 }
 
 arcgis-legend {
@@ -60,4 +63,21 @@ arcgis-legend {
   top: 10px;
   left: 50%;
   transform: translateX(-50%);
+}
+
+#stats {
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  background-color: rgba(169, 169, 169, 0.243);
+}
+
+#stats table {
+  width: 100%;
+}
+#stats td {
+  padding: 1px 4px;
+}
+
+#stats td:nth-child(2) {
+  text-align: right;
 }

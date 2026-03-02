@@ -28,18 +28,37 @@
     </arcgis-map>
 
     <div id="controls">
+    <h4>Estatísticas</h4>
       <div id="stats">
-        <h4>Estatísticas:</h4>
-        <p>Vértices do polígono desenhado: <span id="drawnVertices">0</span></p>
-        <p>Vértices do polígono de quadrículas: <span id="unionVertices">0</span></p>
-        <p>Quadrículas intersectadas: <span id="totalCells">0</span></p>
-        <p>Quadrículas sem restrição total: <span id="allowedCells">0</span></p>
-        <p>Area do polígono desenhado: <span id="drawnArea">0</span></p>
-        <p>Area do polígono de quadrículas: <span id="unionArea">0</span></p>
-        <br />
-        <p>Obs: as áreas exemplo nesse mapa não necessariamente condizem com a realidade</p>
+        <table>
+          <tr>
+            <td>Vértices do polígono desenhado:</td>
+            <td><span id="drawnVertices">0</span></td>
+          </tr>
+          <tr>
+            <td>Vértices do polígono de quadrículas:</td>
+            <td><span id="unionVertices">0</span></td>
+          </tr>
+          <tr>
+            <td>Quadrículas intersectadas:</td>
+            <td><span id="totalCells">0</span></td>
+          </tr>
+          <tr>
+            <td>Quadrículas sem restrição total:</td>
+            <td><span id="allowedCells">0</span></td>
+          </tr>
+          <tr>
+            <td>Área do polígono desenhado:</td>
+            <td><span id="drawnArea">0</span></td>
+          </tr>
+          <tr>
+            <td>Área do polígono de quadrículas:</td>
+            <td><span id="unionArea">0</span></td>
+          </tr>
+        </table>
       </div>
-      <hr />
+      <p style="color: #636363ff;">Obs: as áreas exemplo nesse mapa não necessariamente condizem com a realidade</p>
+      <hr style="border: none; height: 1px; background-color: #6363633b;">
       <button id="clearBtn">Limpar tudo</button>
     </div>
   </body>
