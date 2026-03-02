@@ -58,6 +58,10 @@ arcgis-legend {
   max-width: 200px;
 }
 
+arcgis-editor {
+  max-height: 420px;
+}
+
 #sketch {
   position: absolute;
   top: 10px;
