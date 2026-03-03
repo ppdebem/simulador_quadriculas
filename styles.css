@@ -50,16 +50,21 @@ arcgis-sketch,
 arcgis-legend,
 arcgis-editor,
 arcgis-layer-list {
-  opacity: 0.8;
+  opacity: 0.9;
   border-radius: 4px;
 }
 
 arcgis-legend {
-  max-width: 200px;
+  max-width: 270px;
 }
 
 arcgis-editor {
   max-height: 420px;
+  max-width: 270px;
+}
+
+arcgis-layer-list {
+  max-width: 270px;
 }
 
 #sketch {
