@@ -52,7 +52,7 @@ const WGS84 = SpatialReference.WGS84;
 // =============================================================================
 const graticuleLayer = new GraphicsLayer({ title: "Grid de Quadrículas", listMode: "show" });
 
-const graticuleLineSymbol = { type: "simple-line", color: [50, 50, 50, 0.8], width: 0.5 };
+const graticuleLineSymbol = { type: "simple-line", color: [50, 50, 50, 0.6], width: 0.5 };
 
 function updateGraticule() {
   if (!view.stationary) return;
